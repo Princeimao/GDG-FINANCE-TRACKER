@@ -7,8 +7,8 @@
 // ================================================================
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-const TEXT_MODEL  = "gemini-3-flash";
-const VISION_MODEL = "gemini-3-flash"; 
+const TEXT_MODEL  = "gemini-3-flash-preview";
+const VISION_MODEL = "gemini-3-flash-preview"; 
 
 const ENV_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
