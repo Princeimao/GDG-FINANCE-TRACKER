@@ -13,6 +13,7 @@ import { PredictionView }  from './components/PredictionView';
 import { GoalView }        from './components/GoalView';
 import { TaxGeneratorView } from './components/TaxGeneratorView';
 import { ConnectionsView } from './components/ConnectionsView';
+import { SetupWizard }    from './components/SetupWizard';
 import { useToast, useLocalStorage } from './hooks';
 import { checkBudgetsAndNotify } from './EmailService';
 
@@ -30,33 +31,21 @@ const PAGE_META = {
   connections: { title: "Connections",       subtitle: "Automate expense recording with Gmail sync" },
 };
 
-const DEMO_DATA = [
-  { id: 1, date: "2024-04-01", amount: 450,   category: "Food",          merchant: "Zomato",         type: "expense" },
-  { id: 2, date: "2024-04-01", amount: 50000, category: "Other",         merchant: "Salary",         type: "income"  },
-  { id: 3, date: "2024-04-02", amount: 2300,  category: "Shopping",      merchant: "Amazon",         type: "expense" },
-  { id: 4, date: "2024-04-03", amount: 280,   category: "Transport",     merchant: "Uber",           type: "expense" },
-  { id: 5, date: "2024-04-04", amount: 499,   category: "Bills",         merchant: "Netflix",        type: "expense" },
-  { id: 6, date: "2024-04-05", amount: 850,   category: "Health",        merchant: "Apollo Pharmacy",type: "expense" },
-  { id: 7, date: "2024-04-06", amount: 1200,  category: "Transport",     merchant: "Petrol",         type: "expense" },
-  { id: 8, date: "2024-04-07", amount: 340,   category: "Food",          merchant: "Swiggy",         type: "expense" },
-  { id: 9, date: "2024-04-08", amount: 2100,  category: "Bills",         merchant: "Electricity",    type: "expense" },
-  { id:10, date: "2024-04-09", amount: 560,   category: "Food",          merchant: "Dominos",        type: "expense" },
-  { id:11, date: "2024-04-09", amount: 1500,  category: "Shopping",      merchant: "Myntra",         type: "expense" },
-  { id:12, date: "2024-04-09", amount: 800,   category: "Entertainment", merchant: "PVR Cinema",     type: "expense" },
-];
-
 export default function App() {
   const [activeView, setActiveView] = useState('dashboard');
-  const [transactions, setTransactions] = useLocalStorage('financeai_txns', DEMO_DATA);
+  const [transactions, setTransactions] = useLocalStorage('financeai_txns', []);
   const [budgets] = useLocalStorage('financeai_budgets', { Food: 5000, Shopping: 3000, Transport: 2000, Bills: 10000 });
   const [userEmail] = useLocalStorage('financeai_email', 'user@example.com');
+  const [isSetupComplete, setIsSetupComplete] = useLocalStorage('financeai_setup_complete', false);
   const { toasts, addToast } = useToast();
 
   const meta = PAGE_META[activeView] || PAGE_META.dashboard;
 
   useEffect(() => {
-    checkBudgetsAndNotify(transactions, budgets, userEmail, addToast);
-  }, [transactions]);
+    if (isSetupComplete) {
+      checkBudgetsAndNotify(transactions, budgets, userEmail, addToast);
+    }
+  }, [transactions, isSetupComplete]);
 
   const handleAddTransactions = (newTxns) => {
     const withIds = newTxns.map((t, i) => ({
@@ -66,6 +55,12 @@ export default function App() {
       type: t.type || 'expense'
     }));
     setTransactions(prev => [...withIds, ...prev]);
+  };
+
+  const handleSetupComplete = (initialTransactions) => {
+    handleAddTransactions(initialTransactions);
+    setIsSetupComplete(true);
+    addToast("Welcome! Your financial profile is set up.", "success");
   };
 
   const handleDelete = (id) => {
@@ -81,6 +76,15 @@ export default function App() {
   };
 
   const sharedProps = { addToast };
+
+  if (!isSetupComplete) {
+    return (
+      <>
+        <SetupWizard onComplete={handleSetupComplete} />
+        <ToastContainer toasts={toasts} />
+      </>
+    );
+  }
 
   return (
     <div className="app-layout">
@@ -114,3 +118,4 @@ export default function App() {
     </div>
   );
 }
+

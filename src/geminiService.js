@@ -110,11 +110,12 @@ export async function checkGoalProgress(transactions, goalAmount, goalName) {
 // ================================================================
 // 6. CONVERSATIONAL AI CHAT
 // ================================================================
-export async function chatWithFinanceAI(question, transactions, chatHistory) {
-  const systemContext = `You are FinanceAI. Total expenses: ₹${transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)}. Respond briefly.`;
+export async function chatWithFinanceAI(question, transactions, chatHistory, systemInstruction = null) {
+  const defaultContext = `You are FinanceAI. Total expenses: ₹${transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)}. Respond briefly.`;
+  const systemContext = systemInstruction || defaultContext;
   
   const history = chatHistory.slice(-6).map(h => ({
-    role: h.role === 'assistant' ? 'model' : 'user', // Gemini API uses 'model' not 'assistant'
+    role: h.role === 'assistant' || h.role === 'model' ? 'model' : 'user', 
     parts: [{ text: h.content }]
   }));
 
@@ -147,4 +148,19 @@ export async function chatWithFinanceAI(question, transactions, chatHistory) {
 export async function correctSpeechWithAI(transcript) {
   const prompt = `Fix speech-to-text transcript: "${transcript}". Return ONLY corrected text.`;
   return callGemini(TEXT_MODEL, [{ text: prompt }], null, false);
+}
+
+// ================================================================
+// 8. ONBOARDING DATA EXTRACTION
+// ================================================================
+export async function extractSetupData(conversationText) {
+  const prompt = `You are a financial analyst. Analyze this setup conversation and extract all monthly recurring income and expenses.
+Use these categories ONLY: ["Food", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Education", "Other"].
+Return ONLY valid JSON array of transaction objects:
+[{"amount": number, "category": "string", "merchant": "string", "type": "expense"|"income", "date": "2024-04-01"}]
+
+Conversation:
+${conversationText}`;
+
+  return callGemini(TEXT_MODEL, [{ text: prompt }]);
 }
